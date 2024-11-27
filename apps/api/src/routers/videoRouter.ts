@@ -1,5 +1,7 @@
 import { Router } from "express";
 import client from "@repo/db/client";
+import { userMiddleware } from "../middleware/userMiddleWare";
+import { VideoSchema } from "../types";
 export const videoRouter = Router();
 
 
@@ -32,6 +34,22 @@ videoRouter.get("/feed",async(req:any,res:any)=>{
             totalPages: Math.ceil(totalVideos / limit),
             currentPage: page
         })
+    }catch(error){
+        return res.status(500).json({
+            message:"Internal server error"
+        })
+    }
+})
+
+videoRouter.post("/upload",userMiddleware,async(req:any,res:any)=>{
+    try{
+        const parsedData = VideoSchema.safeParse(req.body);
+        if(!parsedData.success){
+            return res.status(400).json({
+                message:"Validation errors"
+            })
+        }
+        
     }catch(error){
         return res.status(500).json({
             message:"Internal server error"
