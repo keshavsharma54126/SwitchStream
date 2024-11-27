@@ -40,14 +40,23 @@ model Channel {
 model Video {
   id        String   @id @default(cuid())
   title     String
-  description String?
-  video_urls    Json 
+  description String
+  video_urls    Json?
   thumbnail_url String
   views_count  Int      @default(0)
   channelId    String
   creatorId    String
+  category     String
+  status       VideoStatus
   channel     Channel  @relation(fields: [channelId], references: [id])
   creator      User     @relation(fields: [creatorId], references: [id])
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+}
+
+enum VideoStatus{
+  PENDING
+  PROCESSING
+  TRANSCODED
+  FAILED
 }
