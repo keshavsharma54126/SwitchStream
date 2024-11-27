@@ -74,6 +74,7 @@ authRouter.post("/login",async (req:any,res:any)=>{
             httpOnly: true,
             secure: true,
             sameSite: 'strict'
+            
         });
         return res.status(200).json({
             accessToken:token,

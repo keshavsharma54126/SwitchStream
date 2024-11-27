@@ -1,6 +1,18 @@
 import { z } from "zod";
 export const SignupSchema = z.object({
-  username: z.string(),
+  email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["user", "admin"]),
+  username: z.string(),
 });
+
+export const LoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export const ChannelSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  slug: z.string(),
+  userId: z.string(),
+})

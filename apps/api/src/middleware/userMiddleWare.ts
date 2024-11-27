@@ -12,10 +12,14 @@ export const userMiddleware = (req: any, res: any, next: any) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
       username: string;
-      email: string;
+      userId:string;
     };
     console.log(decoded)
-    req.email= decoded.email;
+   if(!decoded.username || !decoded.userId){
+    return res.status(400).json({
+      message:"unauthorized"
+    })
+   }
     next();
   } catch (error) {
     return res.status(400).json({
