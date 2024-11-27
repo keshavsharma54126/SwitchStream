@@ -41,7 +41,7 @@ model Video {
   id        String   @id @default(cuid())
   title     String
   description String?
-  video_url    String
+  video_urls    Json 
   thumbnail_url String
   views_count  Int      @default(0)
   channelId    String
