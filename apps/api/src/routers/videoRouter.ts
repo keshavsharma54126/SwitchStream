@@ -10,6 +10,7 @@ interface VideoJobData{
     videoId:string;
     videoUrl:string;
     userId:string;
+    videoTitle:string;
 }
 
 const videoQueue = new Queue<VideoJobData>("video-processing",{
@@ -78,7 +79,8 @@ videoRouter.post("/upload",userMiddleware,async(req:any,res:any)=>{
         await videoQueue.add({
             videoId:video.id,
             videoUrl:parsedData.data.videoUrl,
-            userId:req.user.id
+            userId:req.user.id,
+            videoTitle:parsedData.data.title
         })
        return res.status(200).json({
             id:video.id,
