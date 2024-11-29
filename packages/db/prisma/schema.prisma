@@ -47,6 +47,7 @@ model Video {
   channelId    String
   creatorId    String
   category     String
+  current_timestamp Int
   status       VideoStatus
   channel     Channel  @relation(fields: [channelId], references: [id])
   creator      User     @relation(fields: [creatorId], references: [id])

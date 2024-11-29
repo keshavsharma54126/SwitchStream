@@ -16,3 +16,13 @@ export const ChannelSchema = z.object({
   slug: z.string(),
   userId: z.string(),
 })
+
+export const VideoSchema = z.object({
+  id:z.string(),
+  title:z.string(),
+  description:z.string(),
+  category:z.string(),
+  videoUrl:z.string(),
+  thumbnailUrl:z.string(),
+  channelId:z.string(),
+})

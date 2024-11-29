@@ -2,8 +2,22 @@ import { Router } from "express";
 import client from "@repo/db/client";
 import { userMiddleware } from "../middleware/userMiddleWare";
 import { VideoSchema } from "../types";
+import Queue from "bull"
+import { VideoStatus } from "@prisma/client";
 export const videoRouter = Router();
 
+interface VideoJobData{
+    videoId:string;
+    videoUrl:string;
+    userId:string;
+}
+
+const videoQueue = new Queue<VideoJobData>("video-processing",{
+    redis:{
+        host:"localhost",
+        port:6379
+    }
+});
 
 videoRouter.get("/feed",async(req:any,res:any)=>{
     try{
@@ -49,7 +63,76 @@ videoRouter.post("/upload",userMiddleware,async(req:any,res:any)=>{
                 message:"Validation errors"
             })
         }
-        
+        const video = await client.video.create({
+            data:{
+                title:parsedData.data.title,
+                description:parsedData.data.description,
+                thumbnail_url:parsedData.data.thumbnailUrl,
+                channelId:parsedData.data.channelId,
+                category:parsedData.data.category,
+                creatorId:req.user.id,
+                status:VideoStatus.PENDING
+            }
+        })
+
+        await videoQueue.add({
+            videoId:video.id,
+            videoUrl:parsedData.data.videoUrl,
+            userId:req.user.id
+        })
+       return res.status(200).json({
+            id:video.id,
+            title:video.title,
+            processing_status:video.status,
+            qualities:["240p","360p","720p","1080p"]
+       })
+
+    }catch(error){
+        return res.status(500).json({
+            message:"Internal server error"
+        })
+    }
+})
+
+videoRouter.get("/:video_id",async(req:any,res:any)=>{
+    try{
+        const video = await client.video.findUnique({
+            where:{
+                id:req.params.video_id
+            },
+            include:{
+                creator:true
+            }
+        })
+        if(!video){
+            return res.status(400).json({
+                message:"Video not found"
+            })
+        }
+        if(video.status === "PENDING"){
+            return res.status(200).json({
+                id:video.id,
+                title:video.title,
+                description:video.description,
+                creator:{
+                    id:video.creator.id,
+                    username:video.creator.username
+                },
+                status:video.status,
+            })
+        }
+        return res.status(200).json({
+            id:video.id,
+            title:video.title,
+            description:video.description,
+            creator:{
+                id:video.creator.id,
+                username:video.creator.username
+            },
+            video_urls:video.video_urls,
+            views_count:video.views_count,
+            status:video.status,
+        })
     }catch(error){
         return res.status(500).json({
             message:"Internal server error"
