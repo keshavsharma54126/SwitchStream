@@ -25,4 +25,5 @@ export const VideoSchema = z.object({
   videoUrl:z.string(),
   thumbnailUrl:z.string(),
   channelId:z.string(),
+  videoKey:z.string(),
 })
