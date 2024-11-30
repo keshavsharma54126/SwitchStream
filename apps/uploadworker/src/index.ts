@@ -52,8 +52,8 @@ videoQueue.process(async (job) => {
         await fs.ensureDir(outputDir)
 
         //Downloading the video from the s3 bucket to the input directory
-        const inputPath= path.join(inputDir,videoTitle)
-        const writeStream = createWriteStream(inputPath)
+        const inputPath= path.join(inputDir,videoId)
+        const writeStream = fs.createWriteStream(inputPath)
         const getObjectCommand = new GetObjectCommand({
             Bucket:bucketName,
             Key:key
@@ -61,6 +61,9 @@ videoQueue.process(async (job) => {
 
         const response = await s3.send(getObjectCommand);
         const body = response.Body;
+        if(!body){
+            throw new Error("no body found in response from s3")
+        }
         if (body) {
             await new Promise((resolve, reject) => {
                 const stream = body as unknown as any;
@@ -78,24 +81,35 @@ videoQueue.process(async (job) => {
             {name:"1080p",width:1920,height:1080}
         ]
         const processedVideos = await Promise.all(qualities.map(async(quality)=>{
-            const outputPath = path.join(outputDir,`${videoTitle}-${quality.name}.mp4`)
+            const outputPath = path.join(outputDir,`${videoId}-${quality.name}.mp4`)
             await new Promise((resolve,reject)=>{
                 ffmpeg(inputPath)
                 .size(`${quality.width}x${quality.height}`)
                 .videoBitrate("1000k")
                 .audioBitrate("128k")
-                .save(outputDir)
+                .save(outputPath)
                 .on("end",resolve)
                 .on("error",reject)
             })
+            //now we will uplad the processed video to the s3 bucket
+            const uplaodKey = `TranscodedUploads/${videoId}-${quality.name}.mp4`
+            const putobjectCommand = new PutObjectCommand({
+                Bucket:bucketName,
+                Key:uplaodKey,
+                Body:fs.createReadStream(outputPath)
+            })
+            await s3.send(putobjectCommand)
             return {
                 outputPath,
-                ...quality
+                ...quality,
+                url:`https://${bucketName}.s3.amazonaws.com/${uplaodKey}`
             }
         }))
+        await fs.remove(inputDir)
+        await fs.remove(outputDir)
 
         
-        return { success: true };
+        return { success: true,processedVideos};
         
     } catch (error) {
         console.error('Error processing video:', error);
