@@ -2,7 +2,7 @@ import { Router } from "express";
 import client from "@repo/db/client";
 import { userMiddleware } from "../middleware/userMiddleWare";
 import { VideoSchema } from "../types";
-import Queue from "bull"
+import amqp from "amqplib"
 import { VideoStatus } from "@prisma/client";
 export const videoRouter = Router();
 
@@ -13,13 +13,25 @@ interface VideoJobData{
     videoTitle:string;
 }
 
-const videoQueue = new Queue<VideoJobData>("video-processing",{
-    redis:{
-        host:"localhost",
-        port:6379
-    }
-});
+const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://localhost:5672"
+const QUEUE_NAME = "video-processing"
 
+let channel:amqp.Channel|null = null
+
+async function initializeRabitMQ(){
+    try{
+        const connection  = await amqp.connect(RABBITMQ_URL)
+        channel = await connection.createChannel()
+        await channel.assertQueue(QUEUE_NAME,{
+            durable:true
+        })
+    }catch(error){
+        console.error("Failed to initialize RabbitMQ",error)
+        setTimeout(initializeRabitMQ,1000)
+    }
+}
+
+initializeRabitMQ()
 videoRouter.get("/feed",async(req:any,res:any)=>{
     try{
         const page = parseInt(req.query.page as string) || 1;
@@ -76,12 +88,18 @@ videoRouter.post("/upload",userMiddleware,async(req:any,res:any)=>{
             }
         })
 
-        await videoQueue.add({
+        if(!channel){
+            return res.status(500).json({
+                message:"Failed to connect to RabbitMQ"
+            })
+        }
+
+        channel.sendToQueue(QUEUE_NAME,Buffer.from(JSON.stringify({
             videoId:video.id,
             videoUrl:parsedData.data.videoUrl,
             userId:req.user.id,
             videoTitle:parsedData.data.title
-        })
+        })))
        return res.status(200).json({
             id:video.id,
             title:video.title,
