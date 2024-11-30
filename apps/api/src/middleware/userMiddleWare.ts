@@ -20,6 +20,9 @@ export const userMiddleware = (req: any, res: any, next: any) => {
       message:"unauthorized"
     })
    }
+   req.user = {
+      id: decoded.userId,
+    };
     next();
   } catch (error) {
     return res.status(400).json({
