@@ -1,4 +1,4 @@
-import express from "express";
+
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import amqp from 'amqplib';
@@ -10,9 +10,7 @@ import fs, { createWriteStream } from "fs-extra";
 
 dotenv.config();
 
-const app = express();
 
-app.use(express.json())
 
 const s3 = new S3Client({
     region:process.env.AWS_REGION as string,
@@ -121,6 +119,3 @@ async function startConsumer() {
 
 startConsumer();
 
-app.listen(3002, () => {
-  console.log("Server is running on port 3002");
-});
